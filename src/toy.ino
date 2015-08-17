@@ -23,7 +23,8 @@ CRGB leds[NUM_LEDS];
 void setup()
 {
     // tell FastLED about the LED strip configuration
-    FastLED.addLeds<LED_TYPE,DATA_PIN,COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+    FastLED.addLeds<LED_TYPE,DATA_PIN,COLOR_ORDER>(leds, NUM_LEDS);
+    // FastLED.setCorrection(TypicalLEDStrip);
     // set master brightness control
     FastLED.setBrightness(BRIGHTNESS);
 }
@@ -35,9 +36,10 @@ SimplePattern gPatterns[] = {
     paletteSweepWithGlitter,
     confetti,
     juggle,
+    leaderSpread,
     contrast,
-    //sinelon,
-    //bpm
+    sinelon,
+    bpm,
 };
 
 // List of palettes to use
@@ -50,7 +52,8 @@ CRGBPalette16 gPalettes[] = {
     CRGBPalette16(OceanColors_p),
 };
 
-CRGBPalette16 gCurrentPalette(CRGB::LightGrey);
+// current and next palette, for smooth transitions
+CRGBPalette16 gCurrentPalette(gPalettes[0]); // intro palette, e.g. CRGB::LightGrey
 CRGBPalette16 gTargetPalette(gPalettes[0]);
 
 uint8_t gCurrentPatternNumber = 0; // Index of current pattern
@@ -82,8 +85,8 @@ void loop()
 
     // do some periodic updates
     EVERY_N_MILLISECONDS(20) { gIndex++; } // slowly cycle the "base color" through the palette
-    EVERY_N_MILLISECONDS(15) { nblendPaletteTowardPalette(gCurrentPalette, gTargetPalette); }
-    EVERY_N_SECONDS(15) { randomPattern(); } // change patterns periodically
+    EVERY_N_MILLISECONDS(20) { nblendPaletteTowardPalette(gCurrentPalette, gTargetPalette); }
+    EVERY_N_SECONDS(15) { nextPattern(); } // change patterns periodically
     EVERY_N_SECONDS(30) { nextPalette(); } // change palettes periodically
 
 }
@@ -114,6 +117,8 @@ void randomPalette()
 {
     gCurrentPaletteNumber = random8Except(ARRAY_SIZE(gPalettes), gCurrentPaletteNumber);
     gTargetPalette = gPalettes[gCurrentPaletteNumber];
+    // flash occasionally
+    if (random8(100) < 20) gCurrentPalette = CRGBPalette16(CRGB::LightGrey);
 }
 
 void paletteSweep()
@@ -128,7 +133,17 @@ void paletteSweep()
 void paletteSweepWithGlitter()
 {
     paletteSweep();
+    // fade in the glitter
     addGlitter(min(gSceneFrame / 7, 80));
+}
+
+void addGlitter(fract8 chanceOfGlitter)
+{
+    if (random8() < chanceOfGlitter)
+    {
+        int led = random16(NUM_LEDS);
+        leds[led] += leds[led]; //CRGB::White;
+    }
 }
 
 void contrast()
@@ -141,24 +156,13 @@ void contrast()
     }
 }
 
-void rainbow()
+void leaderSpread()
 {
-    // FastLED's built-in rainbow generator
-    fill_rainbow(leds, NUM_LEDS, gIndex, 7);
-}
-
-void rainbowWithGlitter()
-{
-    // built-in FastLED rainbow, plus some random sparkly glitter
-    rainbow();
-    addGlitter(30);
-}
-
-void addGlitter(fract8 chanceOfGlitter)
-{
-    if (random8() < chanceOfGlitter)
+    CRGBPalette16 palette = gCurrentPalette;
+    leds[0] = ColorFromPalette(palette, (gIndex + 40) % 256);
+    for (int i = 1; i < NUM_LEDS; i++)
     {
-        leds[ random16(NUM_LEDS) ] += CRGB::White;
+        leds[i] = ColorFromPalette(palette, gIndex + (i * 2));
     }
 }
 
@@ -184,24 +188,33 @@ void sinelon()
 {
     // a colored dot sweeping back and forth, with fading trails
     fadeToBlackBy(leds, NUM_LEDS, 20);
-    int pos = beatsin16(13,0,NUM_LEDS);
-    leds[pos] += CHSV(gIndex, 255, 192);
+    int beat = beatsin16(6, 0, (NUM_LEDS - 1) * 3) + beatsin16(4, 0, 12);
+    int pos = beat % (NUM_LEDS - 1) + 1;
+    leds[pos] += ColorFromPalette(gCurrentPalette, gIndex + pos * 2);
+
+    if (random8(100) < 3)
+    {
+        leds[0] += ColorFromPalette(gCurrentPalette, (gIndex + 10) % 256) +
+            ColorFromPalette(gCurrentPalette, gIndex);
+    }
 }
 
 void bpm()
 {
     // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
-    uint8_t BeatsPerMinute = 62;
-    CRGBPalette16 palette = PartyColors_p;
-    uint8_t beat = beatsin8(BeatsPerMinute, 64, 255);
+    uint8_t BeatsPerMinute = 32;
+    CRGBPalette16 palette = gCurrentPalette;
+    uint8_t beat = beatsin8(BeatsPerMinute, 100, 200) + beatsin8(BeatsPerMinute * 8 / 3, 0, 55);
     for (int i = 0; i < NUM_LEDS; i++)
     {
-        leds[i] = ColorFromPalette(palette, gIndex+(i*2), beat-gIndex+(i*10));
+        leds[i] = ColorFromPalette(palette, gIndex+(i*2)); // , beat-gIndex+(i*3));
     }
 }
 
 uint8_t random8Except(uint8_t max, uint8_t except)
 {
+    // returns a random number 0 <= r < max, but won't return r == except.
+    // useful for picking a random array value different from the previous one.
     uint8_t r = random8(max);
     while (r == except && max > 1)
     {
