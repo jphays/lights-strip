@@ -15,7 +15,8 @@ FASTLED_USING_NAMESPACE
 #define LED_TYPE    WS2812B
 #define COLOR_ORDER GRB
 #define NUM_LEDS    7
-CRGB leds[NUM_LEDS];
+CRGB leds[NUM_LEDS]; // actual output array
+CRGB buffer[2][NUM_LEDS]; // intermediate buffers
 
 #define BRIGHTNESS          96
 #define FRAMES_PER_SECOND   60
@@ -30,7 +31,7 @@ void setup()
 }
 
 // List of patterns to cycle through.  Each is defined as a separate function below.
-typedef void (*SimplePattern)();
+typedef void (*SimplePattern)(CRGB* pixels);
 SimplePattern gPatterns[] = {
     paletteSweep,
     paletteSweepWithGlitter,
@@ -57,14 +58,21 @@ CRGBPalette16 gCurrentPalette(gPalettes[0]); // intro palette, e.g. CRGB::LightG
 CRGBPalette16 gTargetPalette(gPalettes[0]);
 
 uint8_t gCurrentPatternNumber = 0; // Index of current pattern
+uint8_t gPreviousPatternNumber = 0; // Index of previous pattern
+
 uint8_t gCurrentPaletteNumber = 0; // Index of current palette
 uint8_t gIndex = 0; // rotating index of "current" color
+
+bool gRandomize = false; // whether to add some randomness
+bool gTransitioning = false; // currently in a transition?
+int gTransitionMillis = 2000; // transition length
 
 // time and frame state
 unsigned long gFrame = 0;
 unsigned long gSceneFrame = 0;
 unsigned long gCurrentTime = 0;
 unsigned long gPreviousTime = 0;
+unsigned long gTransitionTime = 0;
 
 void loop()
 {
@@ -75,8 +83,26 @@ void loop()
     gPreviousTime = gCurrentTime;
     gCurrentTime = millis();
 
-    // call the current pattern function once, updating the 'leds' array
-    gPatterns[gCurrentPatternNumber]();
+    // call the current pattern function once, updating the 'buffer' array
+    gPatterns[gCurrentPatternNumber](buffer[0]);
+
+
+    if (gTransitioning)
+    {
+        // transition if necessary
+        gPatterns[gPreviousPatternNumber](buffer[1]);
+        fract8 transitionPercent = ((gCurrentTime - gTransitionTime) * 256) / gTransitionMillis;
+        blend(buffer[1], buffer[0], leds, NUM_LEDS, transitionPercent);
+        if (transitionPercent >= 255)
+        {
+            gTransitioning = false;
+        }
+    }
+    else
+    {
+        // copy buffer to leds
+        memmove8(&leds, &buffer[0], NUM_LEDS * sizeof(CRGB));
+    }
 
     // send the 'leds' array out to the actual LED strip
     FastLED.show();
@@ -95,111 +121,116 @@ void loop()
 
 void nextPattern()
 {
-    // add one to the current pattern number, and wrap around at the end
-    gCurrentPatternNumber = (gCurrentPatternNumber + 1) % ARRAY_SIZE(gPatterns);
-    gSceneFrame = 0;
-}
+    gPreviousPatternNumber = gCurrentPatternNumber;
 
-void randomPattern()
-{
-    // choose a random pattern, but don't pick the same one twice in a row
-    gCurrentPatternNumber = random8Except(ARRAY_SIZE(gPatterns), gCurrentPatternNumber);
+    gCurrentPatternNumber = gRandomize ?
+        random8Except(ARRAY_SIZE(gPatterns), gCurrentPatternNumber) :
+        (gCurrentPatternNumber + 1) % ARRAY_SIZE(gPatterns);
+
+    memmove8(&buffer[1], &buffer[0], NUM_LEDS * sizeof(CRGB));
+    memset(buffer[0], 0, sizeof(CRGB));
+
+    gTransitioning = true;
+    gTransitionTime = gCurrentTime;
     gSceneFrame = 0;
 }
 
 void nextPalette()
 {
-    gCurrentPaletteNumber = (gCurrentPaletteNumber + 1) % ARRAY_SIZE(gPalettes);
+    gCurrentPaletteNumber = gRandomize ?
+        random8Except(ARRAY_SIZE(gPalettes), gCurrentPaletteNumber) :
+        (gCurrentPaletteNumber + 1) % ARRAY_SIZE(gPalettes);
+
     gTargetPalette = gPalettes[gCurrentPaletteNumber];
+    // flash occasionally
+    if (gRandomize && random8(100) < 20) gCurrentPalette = CRGBPalette16(CRGB::LightGrey);
 }
 
 void randomPalette()
 {
     gCurrentPaletteNumber = random8Except(ARRAY_SIZE(gPalettes), gCurrentPaletteNumber);
     gTargetPalette = gPalettes[gCurrentPaletteNumber];
-    // flash occasionally
-    if (random8(100) < 20) gCurrentPalette = CRGBPalette16(CRGB::LightGrey);
 }
 
-void paletteSweep()
+void paletteSweep(CRGB* pixels)
 {
     CRGBPalette16 palette = gCurrentPalette;
     for (int i = 0; i < NUM_LEDS; i++)
     {
-        leds[i] = ColorFromPalette(palette, gIndex + (i * 7));
+        pixels[i] = ColorFromPalette(palette, gIndex + (i * 7));
     }
 }
 
-void paletteSweepWithGlitter()
+void paletteSweepWithGlitter(CRGB* pixels)
 {
-    paletteSweep();
+    paletteSweep(pixels);
     // fade in the glitter
-    addGlitter(min(gSceneFrame / 7, 80));
+    addGlitter(pixels, min(gSceneFrame / 7, 80));
 }
 
-void addGlitter(fract8 chanceOfGlitter)
+void addGlitter(CRGB* pixels, fract8 chanceOfGlitter)
 {
     if (random8() < chanceOfGlitter)
     {
         int led = random16(NUM_LEDS);
-        leds[led] += leds[led]; //CRGB::White;
+        pixels[led] += pixels[led];
     }
 }
 
-void contrast()
+void contrast(CRGB* pixels)
 {
     CRGBPalette16 palette = gCurrentPalette;
-    leds[0] = ColorFromPalette(palette, (gIndex + 128) % 256);
+    pixels[0] = ColorFromPalette(palette, (gIndex + 128) % 256);
     for (int i = 1; i < NUM_LEDS; i++)
     {
-        leds[i] = ColorFromPalette(palette, gIndex + (i * 7));
+        pixels[i] = ColorFromPalette(palette, gIndex + (i * 7));
     }
 }
 
-void leaderSpread()
+void leaderSpread(CRGB* pixels)
 {
     CRGBPalette16 palette = gCurrentPalette;
-    leds[0] = ColorFromPalette(palette, (gIndex + 40) % 256);
+    pixels[0] = ColorFromPalette(palette, (gIndex + 40) % 256);
     for (int i = 1; i < NUM_LEDS; i++)
     {
-        leds[i] = ColorFromPalette(palette, gIndex + (i * 2));
+        pixels[i] = ColorFromPalette(palette, gIndex + (i * 2));
     }
 }
 
-void confetti()
+void confetti(CRGB* pixels)
 {
     // random colored speckles that blink in and fade smoothly
-    fadeToBlackBy(leds, NUM_LEDS, 10);
+    fadeToBlackBy(pixels, NUM_LEDS, 10);
     int pos = random16(NUM_LEDS);
-    leds[pos] += ColorFromPalette(gCurrentPalette, gIndex + random8(64));
+    pixels[pos] += ColorFromPalette(gCurrentPalette, gIndex + random8(64));
 }
 
-void juggle()
+void juggle(CRGB* pixels)
 {
     // eight colored dots, weaving in and out of sync with each other
-    fadeToBlackBy(leds, NUM_LEDS, 20);
+    fadeToBlackBy(pixels, NUM_LEDS, 20);
     for (int i = 0; i < 8; i++)
     {
-        leds[beatsin16(i+7,0,NUM_LEDS)] |= ColorFromPalette(gCurrentPalette, gIndex);
+        pixels[beatsin16(i+7,0,NUM_LEDS)] |= ColorFromPalette(gCurrentPalette, gIndex);
     }
 }
 
-void sinelon()
+void sinelon(CRGB* pixels)
 {
     // a colored dot sweeping back and forth, with fading trails
-    fadeToBlackBy(leds, NUM_LEDS, 20);
+    fadeToBlackBy(pixels, NUM_LEDS, 20);
     int beat = beatsin16(6, 0, (NUM_LEDS - 1) * 3) + beatsin16(4, 0, 12);
     int pos = beat % (NUM_LEDS - 1) + 1;
-    leds[pos] += ColorFromPalette(gCurrentPalette, gIndex + pos * 2);
+    pixels[pos] += ColorFromPalette(gCurrentPalette, gIndex + pos * 2);
 
     if (random8(100) < 3)
     {
-        leds[0] += ColorFromPalette(gCurrentPalette, (gIndex + 10) % 256) +
+        pixels[0] += ColorFromPalette(gCurrentPalette, (gIndex + 10) % 256) +
             ColorFromPalette(gCurrentPalette, gIndex);
     }
 }
 
-void bpm()
+void bpm(CRGB* pixels)
 {
     // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
     uint8_t BeatsPerMinute = 32;
@@ -207,7 +238,7 @@ void bpm()
     uint8_t beat = beatsin8(BeatsPerMinute, 100, 200) + beatsin8(BeatsPerMinute * 8 / 3, 0, 55);
     for (int i = 0; i < NUM_LEDS; i++)
     {
-        leds[i] = ColorFromPalette(palette, gIndex+(i*2)); // , beat-gIndex+(i*3));
+        pixels[i] = ColorFromPalette(palette, gIndex+(i*2)); // , beat-gIndex+(i*3));
     }
 }
 
