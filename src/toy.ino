@@ -15,11 +15,17 @@ FASTLED_USING_NAMESPACE
 #define LED_TYPE    WS2812B
 #define COLOR_ORDER GRB
 #define NUM_LEDS    7
+
 CRGB leds[NUM_LEDS]; // actual output array
 CRGB buffer[2][NUM_LEDS]; // intermediate buffers
 
+#define CUR 0 // index to current buffer
+#define PREV 1 // index to previous buffer
+
 #define BRIGHTNESS          96
 #define FRAMES_PER_SECOND   60
+
+#define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
 
 void setup()
 {
@@ -39,8 +45,8 @@ SimplePattern gPatterns[] = {
     juggle,
     leaderSpread,
     contrast,
-    sinelon,
-    bpm,
+    //sinelon,
+    //bpm,
 };
 
 // List of palettes to use
@@ -84,15 +90,15 @@ void loop()
     gCurrentTime = millis();
 
     // call the current pattern function once, updating the 'buffer' array
-    gPatterns[gCurrentPatternNumber](buffer[0]);
+    gPatterns[gCurrentPatternNumber](buffer[CUR]);
 
 
     if (gTransitioning)
     {
         // transition if necessary
-        gPatterns[gPreviousPatternNumber](buffer[1]);
-        fract8 transitionPercent = ((gCurrentTime - gTransitionTime) * 256) / gTransitionMillis;
-        blend(buffer[1], buffer[0], leds, NUM_LEDS, transitionPercent);
+        gPatterns[gPreviousPatternNumber](buffer[PREV]);
+        fract8 transitionPercent = min(((gCurrentTime - gTransitionTime) * 256) / gTransitionMillis, 255);
+        blend(buffer[PREV], buffer[CUR], leds, NUM_LEDS, transitionPercent);
         if (transitionPercent >= 255)
         {
             gTransitioning = false;
@@ -101,7 +107,7 @@ void loop()
     else
     {
         // copy buffer to leds
-        memmove8(&leds, &buffer[0], NUM_LEDS * sizeof(CRGB));
+        memmove8(&leds, &buffer[CUR], NUM_LEDS * sizeof(CRGB));
     }
 
     // send the 'leds' array out to the actual LED strip
@@ -117,8 +123,6 @@ void loop()
 
 }
 
-#define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
-
 void nextPattern()
 {
     gPreviousPatternNumber = gCurrentPatternNumber;
@@ -127,8 +131,8 @@ void nextPattern()
         random8Except(ARRAY_SIZE(gPatterns), gCurrentPatternNumber) :
         (gCurrentPatternNumber + 1) % ARRAY_SIZE(gPatterns);
 
-    memmove8(&buffer[1], &buffer[0], NUM_LEDS * sizeof(CRGB));
-    memset(buffer[0], 0, sizeof(CRGB));
+    memmove8(&buffer[PREV], &buffer[CUR], NUM_LEDS * sizeof(CRGB));
+    memset(buffer[CUR], 0, sizeof(CRGB));
 
     gTransitioning = true;
     gTransitionTime = gCurrentTime;
@@ -144,12 +148,6 @@ void nextPalette()
     gTargetPalette = gPalettes[gCurrentPaletteNumber];
     // flash occasionally
     if (gRandomize && random8(100) < 20) gCurrentPalette = CRGBPalette16(CRGB::LightGrey);
-}
-
-void randomPalette()
-{
-    gCurrentPaletteNumber = random8Except(ARRAY_SIZE(gPalettes), gCurrentPaletteNumber);
-    gTargetPalette = gPalettes[gCurrentPaletteNumber];
 }
 
 void paletteSweep(CRGB* pixels)
@@ -180,7 +178,7 @@ void addGlitter(CRGB* pixels, fract8 chanceOfGlitter)
 void contrast(CRGB* pixels)
 {
     CRGBPalette16 palette = gCurrentPalette;
-    pixels[0] = ColorFromPalette(palette, (gIndex + 128) % 256);
+    pixels[0] = ColorFromPalette(palette, gIndex + 128);
     for (int i = 1; i < NUM_LEDS; i++)
     {
         pixels[i] = ColorFromPalette(palette, gIndex + (i * 7));
@@ -190,7 +188,7 @@ void contrast(CRGB* pixels)
 void leaderSpread(CRGB* pixels)
 {
     CRGBPalette16 palette = gCurrentPalette;
-    pixels[0] = ColorFromPalette(palette, (gIndex + 40) % 256);
+    pixels[0] = ColorFromPalette(palette, gIndex + 40);
     for (int i = 1; i < NUM_LEDS; i++)
     {
         pixels[i] = ColorFromPalette(palette, gIndex + (i * 2));
@@ -219,13 +217,13 @@ void sinelon(CRGB* pixels)
 {
     // a colored dot sweeping back and forth, with fading trails
     fadeToBlackBy(pixels, NUM_LEDS, 20);
-    int beat = beatsin16(6, 0, (NUM_LEDS - 1) * 3) + beatsin16(4, 0, 12);
+    int beat = beatsin16(12, 0, (NUM_LEDS - 1) * 3) + beatsin16(8, 0, 12);
     int pos = beat % (NUM_LEDS - 1) + 1;
     pixels[pos] += ColorFromPalette(gCurrentPalette, gIndex + pos * 2);
 
     if (random8(100) < 3)
     {
-        pixels[0] += ColorFromPalette(gCurrentPalette, (gIndex + 10) % 256) +
+        pixels[0] += ColorFromPalette(gCurrentPalette, gIndex + 10) +
             ColorFromPalette(gCurrentPalette, gIndex);
     }
 }
