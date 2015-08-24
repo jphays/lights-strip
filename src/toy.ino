@@ -43,10 +43,10 @@ void setup()
 // List of patterns to cycle through.  Each is defined as a separate function below.
 typedef void (*SimplePattern)(CRGB* pixels);
 SimplePattern gPatterns[] = {
+    paletteSweepWithGlitter,
     distributed,
     wipe,
     paletteSweep,
-    paletteSweepWithGlitter,
     confetti,
     juggle,
     leaderSpread,
@@ -58,11 +58,12 @@ SimplePattern gPatterns[] = {
 // List of palettes to use
 CRGBPalette16 gPalettes[] = {
     CRGBPalette16(RainbowColors_p),
+    CRGBPalette16(RainbowStripeColors_p),
     CRGBPalette16(CloudColors_p),
     CRGBPalette16(ForestColors_p),
-    modifiedRainbow_p,
     CRGBPalette16(LavaColors_p),
     CRGBPalette16(OceanColors_p),
+    modifiedRainbow_p,
 };
 
 // current and next palette, for smooth transitions
@@ -172,8 +173,10 @@ void nextPalette()
         (gCurrentPaletteNumber + 1) % ARRAY_SIZE(gPalettes);
 
     gTargetPalette = gPalettes[gCurrentPaletteNumber];
+
     // flash occasionally
-    if (gRandomize && random8(100) < 20) gCurrentPalette = CRGBPalette16(CRGB::LightGrey);
+    const uint8_t flashPercent = 20;
+    if (gRandomize && random8(100) < flashPercent) gCurrentPalette = CRGBPalette16(CRGB::LightGrey);
 }
 
 
@@ -193,15 +196,31 @@ void paletteSweepWithGlitter(CRGB* pixels)
 {
     paletteSweep(pixels);
     // fade in the glitter
-    addGlitter(pixels, min(gSceneFrame / 7, 80));
+    addGlitter(pixels, min(gSceneFrame / 7, 60));
 }
 
 void addGlitter(CRGB* pixels, fract8 chanceOfGlitter)
 {
+    const uint8_t maxBright = 90;
+    const uint8_t fadeSteps = 18;
+    static int glitter[fadeSteps];
+
+    for (int i = fadeSteps - 1; i > 0; i--)
+    {
+        uint8_t level = ease8InOutCubic((fadeSteps - i) * (maxBright / fadeSteps));
+        pixels[glitter[i]] += CRGB(level, level, level);
+        glitter[i] = glitter[i - 1];
+    }
+
     if (random8() < chanceOfGlitter)
     {
         int led = random16(NUM_LEDS);
-        pixels[led] += pixels[led];
+        pixels[led] += CRGB(maxBright, maxBright, maxBright);
+        glitter[0] = led;
+    }
+    else
+    {
+        glitter[0] = NUM_LEDS;
     }
 }
 
@@ -239,8 +258,11 @@ void confetti(CRGB* pixels)
 {
     // random colored speckles that blink in and fade smoothly
     fadeToBlackBy(pixels, NUM_LEDS, 10);
-    int pos = random16(NUM_LEDS);
-    pixels[pos] += ColorFromPalette(gCurrentPalette, gIndex + random8(64));
+    if (random8(100) < 40)
+    {
+        int pos = random16(NUM_LEDS);
+        pixels[pos] += ColorFromPalette(gCurrentPalette, gIndex + random8(64));
+    }
 }
 
 void juggle(CRGB* pixels)
@@ -330,6 +352,9 @@ void bpm(CRGB* pixels)
         pixels[i] = ColorFromPalette(palette, gIndex+(i*2)); // , beat-gIndex+(i*3));
     }
 }
+
+// Utilities
+// ---------
 
 uint8_t random8Except(uint8_t max, uint8_t except)
 {
