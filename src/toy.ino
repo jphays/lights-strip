@@ -43,14 +43,14 @@ void setup()
 // List of patterns to cycle through.  Each is defined as a separate function below.
 typedef void (*SimplePattern)(CRGB* pixels);
 SimplePattern gPatterns[] = {
-    paletteSweepWithGlitter,
     distributed,
     wipe,
     paletteSweep,
+    paletteSweepWithGlitter,
     confetti,
     juggle,
     leaderSpread,
-    contrast,
+    complement,
     //sinelon,
     //bpm,
 };
@@ -79,7 +79,7 @@ uint8_t gIndex = 0; // rotating index of "current" color
 bool gRandomize = true; // whether to add some randomness
 
 bool gTransitioning = false; // currently in a transition?
-int gTransitionMillis = 2000; // transition length
+int gTransitionMillis = 3000; // transition length
 
 // time and frame state
 unsigned long gFrame = 0;
@@ -110,8 +110,8 @@ void loop()
 
     // do some periodic updates
     EVERY_N_MILLISECONDS(20) { gIndex++; } // slowly cycle the "base color" through the palette
-    EVERY_N_MILLISECONDS(20) { nblendPaletteTowardPalette(gCurrentPalette, gTargetPalette); }
-    EVERY_N_SECONDS(15) { nextPattern(); } // change patterns periodically
+    EVERY_N_MILLISECONDS(20) { nblendPaletteTowardPalette(gCurrentPalette, gTargetPalette, 12); }
+    EVERY_N_SECONDS(10) { nextPattern(); } // change patterns periodically
     EVERY_N_SECONDS(30) { nextPalette(); } // change palettes periodically
 
 }
@@ -130,7 +130,7 @@ void renderFrame()
 
         // calculate the transition progress and blend the current and previous scenes to the led array
         fract8 transitionPercent = min(((gCurrentTime - gTransitionTime) * 256) / gTransitionMillis, 255);
-        blend(buffer[PREV], buffer[CUR], leds, NUM_LEDS, transitionPercent);
+        blend(buffer[PREV], buffer[CUR], leds, NUM_LEDS, ease8InOutQuad(transitionPercent));
 
         // transition ending?
         if (transitionPercent >= 255)
@@ -185,6 +185,7 @@ void nextPalette()
 
 void paletteSweep(CRGB* pixels)
 {
+    // basic pattern. cycle through the palette with a slight spread of colors.
     CRGBPalette16 palette = gCurrentPalette;
     for (int i = 0; i < NUM_LEDS; i++)
     {
@@ -194,16 +195,17 @@ void paletteSweep(CRGB* pixels)
 
 void paletteSweepWithGlitter(CRGB* pixels)
 {
+    // basic pattern with added glitter fading in.
     paletteSweep(pixels);
-    // fade in the glitter
-    addGlitter(pixels, min(gSceneFrame / 7, 60));
+    addGlitter(pixels, min(gSceneFrame / 10, 30));
 }
 
 void addGlitter(CRGB* pixels, fract8 chanceOfGlitter)
 {
-    const uint8_t maxBright = 90;
-    const uint8_t fadeSteps = 18;
-    static int glitter[fadeSteps];
+    // adds a sparkle every chanceOfGlitter/255 frames.
+    const uint8_t maxBright = 90;  // brightness of sparkle
+    const uint8_t fadeSteps = 18;  // frames to fade
+    static int glitter[fadeSteps]; // glitter led index history
 
     for (int i = fadeSteps - 1; i > 0; i--)
     {
@@ -224,8 +226,9 @@ void addGlitter(CRGB* pixels, fract8 chanceOfGlitter)
     }
 }
 
-void contrast(CRGB* pixels)
+void complement(CRGB* pixels)
 {
+    // basic pattern with a complementary hue in the center.
     CRGBPalette16 palette = gCurrentPalette;
     pixels[0] = ColorFromPalette(palette, gIndex + 128);
     for (int i = 1; i < NUM_LEDS; i++)
@@ -236,6 +239,7 @@ void contrast(CRGB* pixels)
 
 void leaderSpread(CRGB* pixels)
 {
+    // basic pattern with the center hue a few frames ahead of the rest.
     CRGBPalette16 palette = gCurrentPalette;
     pixels[0] = ColorFromPalette(palette, gIndex + 40);
     for (int i = 1; i < NUM_LEDS; i++)
@@ -246,6 +250,7 @@ void leaderSpread(CRGB* pixels)
 
 void distributed(CRGB* pixels)
 {
+    // palette hues evenly distributed among leds.
     const uint8_t spread = 255 / NUM_LEDS;
     //pixels[0] = ColorFromPalette(gCurrentPalette, sin8(gIndex));
     for (int i = 0; i < NUM_LEDS; i++)
@@ -256,9 +261,9 @@ void distributed(CRGB* pixels)
 
 void confetti(CRGB* pixels)
 {
-    // random colored speckles that blink in and fade smoothly
+    // random colored speckles that blink in and fade smoothly.
     fadeToBlackBy(pixels, NUM_LEDS, 10);
-    if (random8(100) < 40)
+    if (random8(100) < beatsin8(10, 20, 50))
     {
         int pos = random16(NUM_LEDS);
         pixels[pos] += ColorFromPalette(gCurrentPalette, gIndex + random8(64));
@@ -267,9 +272,9 @@ void confetti(CRGB* pixels)
 
 void juggle(CRGB* pixels)
 {
-    // eight colored dots, weaving in and out of sync with each other
+    // colored dots, weaving in and out of sync with each other.
     fadeToBlackBy(pixels, NUM_LEDS, 20);
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < 7; i++)
     {
         pixels[beatsin16(i+7,0,NUM_LEDS)] |= ColorFromPalette(gCurrentPalette, gIndex);
     }
@@ -277,11 +282,12 @@ void juggle(CRGB* pixels)
 
 void wipe(CRGB* pixels)
 {
+    // a sweep across the jewel hexagon.
     static long lastStepTime = 0;
     static uint8_t step = 0;
     static uint8_t direction = 0;
     int intensity = beatsin8(9, 0, 255);
-    fadeToBlackBy(pixels, NUM_LEDS, beatsin8(6, 5, 20));
+    fadeToBlackBy(pixels, NUM_LEDS, beatsin8(6, 2, 20));
     CRGB currentColor = ColorFromPalette(gCurrentPalette, gIndex);
 
     if (gCurrentTime - lastStepTime >= 100)
