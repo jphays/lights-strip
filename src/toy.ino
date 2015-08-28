@@ -4,6 +4,7 @@
 FASTLED_USING_NAMESPACE
 
 // Toy cube light for Selina
+// Using Adafruit Neopixel Jewel
 // Based on FastLED 3.1 demo reel.
 // Josh Hays, 8/2015
 
@@ -36,21 +37,21 @@ void setup()
     // tell FastLED about the LED strip configuration
     FastLED.addLeds<LED_TYPE,DATA_PIN,COLOR_ORDER>(leds, NUM_LEDS);
     // FastLED.setCorrection(TypicalLEDStrip);
-    // set master brightness control
     FastLED.setBrightness(BRIGHTNESS);
 }
 
 // List of patterns to cycle through.  Each is defined as a separate function below.
 typedef void (*SimplePattern)(CRGB* pixels);
 SimplePattern gPatterns[] = {
-    distributed,
-    wipe,
     paletteSweep,
     paletteSweepWithGlitter,
+    distributed,
+    leaderSpread,
     confetti,
     juggle,
-    leaderSpread,
     complement,
+    whirl,
+    wipe,
     //sinelon,
     //bpm,
 };
@@ -88,6 +89,7 @@ unsigned long gCurrentTime = 0;
 unsigned long gPreviousTime = 0;
 unsigned long gTransitionTime = 0;
 
+
 // Main Loop
 // ---------
 
@@ -110,7 +112,7 @@ void loop()
 
     // do some periodic updates
     EVERY_N_MILLISECONDS(20) { gIndex++; } // slowly cycle the "base color" through the palette
-    EVERY_N_MILLISECONDS(20) { nblendPaletteTowardPalette(gCurrentPalette, gTargetPalette, 12); }
+    EVERY_N_MILLISECONDS(20) { nblendPaletteTowardPalette(gCurrentPalette, gTargetPalette, 16); }
     EVERY_N_SECONDS(10) { nextPattern(); } // change patterns periodically
     EVERY_N_SECONDS(30) { nextPalette(); } // change palettes periodically
 
@@ -197,7 +199,7 @@ void paletteSweepWithGlitter(CRGB* pixels)
 {
     // basic pattern with added glitter fading in.
     paletteSweep(pixels);
-    addGlitter(pixels, min(gSceneFrame / 10, 30));
+    addGlitter(pixels, min(gSceneFrame / 30, 30));
 }
 
 void addGlitter(CRGB* pixels, fract8 chanceOfGlitter)
@@ -209,7 +211,7 @@ void addGlitter(CRGB* pixels, fract8 chanceOfGlitter)
 
     for (int i = fadeSteps - 1; i > 0; i--)
     {
-        uint8_t level = ease8InOutCubic((fadeSteps - i) * (maxBright / fadeSteps));
+        uint8_t level = scale8(ease8InOutCubic((fadeSteps - i) * (256 / fadeSteps)), maxBright);
         pixels[glitter[i]] += CRGB(level, level, level);
         glitter[i] = glitter[i - 1];
     }
@@ -286,7 +288,7 @@ void wipe(CRGB* pixels)
     static long lastStepTime = 0;
     static uint8_t step = 0;
     static uint8_t direction = 0;
-    int intensity = beatsin8(9, 0, 255);
+    int intensity = beatsin8(9, 0, 160);
     fadeToBlackBy(pixels, NUM_LEDS, beatsin8(6, 2, 20));
     CRGB currentColor = ColorFromPalette(gCurrentPalette, gIndex);
 
@@ -310,6 +312,17 @@ void wipe(CRGB* pixels)
 
         lastStepTime = gCurrentTime;
     }
+}
+
+void whirl(CRGB* pixels)
+{
+    const uint8_t bpm = 6;
+    const uint8_t cycles = 8;
+    uint8_t direction = beatsin8(bpm, 0, 6 * cycles);
+
+    wipeStep(pixels, ColorFromPalette(gCurrentPalette, gIndex), 0, direction, true);
+    wipeStep(pixels, ColorFromPalette(gCurrentPalette, gIndex + 15), 1, direction, true);
+    wipeStep(pixels, ColorFromPalette(gCurrentPalette, gIndex + 30), 2, direction, true);
 }
 
 void wipeStep(CRGB* pixels, CRGB color, uint8_t step, uint8_t direction, boolean includeCenter)
