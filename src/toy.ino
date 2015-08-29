@@ -67,6 +67,10 @@ CRGBPalette16 gPalettes[] = {
     CRGBPalette16(OceanColors_p),
     modifiedRainbow_p,
     coldFire_p,
+    royal_p,
+    bp_p,
+    //kelvino_p,
+    //achilles_p
 };
 
 // current and next palette, for smooth transitions
@@ -179,8 +183,8 @@ void nextPalette()
     gTargetPalette = gPalettes[gCurrentPaletteNumber];
 
     // flash occasionally
-    const uint8_t flashPercent = 20;
-    if (gRandomize && random8(100) < flashPercent) gCurrentPalette = CRGBPalette16(CRGB::LightGrey);
+    //const uint8_t flashPercent = 20;
+    //if (gRandomize && random8(100) < flashPercent) gCurrentPalette = CRGBPalette16(CRGB::LightGrey);
 }
 
 
