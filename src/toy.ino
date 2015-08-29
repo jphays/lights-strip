@@ -60,11 +60,13 @@ SimplePattern gPatterns[] = {
 CRGBPalette16 gPalettes[] = {
     CRGBPalette16(RainbowColors_p),
     CRGBPalette16(RainbowStripeColors_p),
+    CRGBPalette16(PartyColors_p),
     CRGBPalette16(CloudColors_p),
     CRGBPalette16(ForestColors_p),
     CRGBPalette16(LavaColors_p),
     CRGBPalette16(OceanColors_p),
     modifiedRainbow_p,
+    coldFire_p,
 };
 
 // current and next palette, for smooth transitions
