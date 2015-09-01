@@ -35,7 +35,7 @@ CRGB buffer[2][NUM_LEDS]; // intermediate buffers
 void setup()
 {
     // tell FastLED about the LED strip configuration
-    FastLED.addLeds<LED_TYPE,DATA_PIN,COLOR_ORDER>(leds, NUM_LEDS);
+    FastLED.addLeds<LED_TYPE, DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS);
     // FastLED.setCorrection(TypicalLEDStrip);
     FastLED.setBrightness(BRIGHTNESS);
 }
@@ -52,8 +52,8 @@ SimplePattern gPatterns[] = {
     complement,
     whirl,
     wipe,
-    //sinelon,
-    //bpm,
+    sinelon,
+    candle,
 };
 
 // List of palettes to use
@@ -359,22 +359,22 @@ void sinelon(CRGB* pixels)
     int pos = beat % (NUM_LEDS - 1) + 1;
     pixels[pos] += ColorFromPalette(gCurrentPalette, gIndex + pos * 2);
 
-    if (random8(100) < 3)
+    if (beat == 0)
     {
         pixels[0] += ColorFromPalette(gCurrentPalette, gIndex + 10) +
             ColorFromPalette(gCurrentPalette, gIndex);
     }
 }
 
-void bpm(CRGB* pixels)
+void candle(CRGB* pixels)
 {
-    // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
-    uint8_t BeatsPerMinute = 32;
+    // slow flicker with some slight noise
+    uint8_t flickerBpm = 16;
     CRGBPalette16 palette = gCurrentPalette;
-    uint8_t beat = beatsin8(BeatsPerMinute, 100, 200) + beatsin8(BeatsPerMinute * 8 / 3, 0, 55);
+    uint8_t beat = beatsin8(flickerBpm, 150, 220) + beatsin8(flickerBpm * 8 / 3, 0, 30);
     for (int i = 0; i < NUM_LEDS; i++)
     {
-        pixels[i] = ColorFromPalette(palette, gIndex+(i*2)); // , beat-gIndex+(i*3));
+        pixels[i] = ColorFromPalette(palette, gIndex + (i * 3), beat - random8(10)); // , beat-gIndex+(i*3));
     }
 }
 
