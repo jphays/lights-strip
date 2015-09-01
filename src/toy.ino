@@ -324,11 +324,12 @@ void whirl(CRGB* pixels)
 {
     const uint8_t bpm = 6;
     const uint8_t cycles = 8;
-    uint8_t direction = beatsin8(bpm, 0, 6 * cycles);
+    uint8_t phase = beatsin8(bpm, 0, 6 * cycles);
 
-    wipeStep(pixels, ColorFromPalette(gCurrentPalette, gIndex), 0, direction, true);
-    wipeStep(pixels, ColorFromPalette(gCurrentPalette, gIndex + 15), 1, direction, true);
-    wipeStep(pixels, ColorFromPalette(gCurrentPalette, gIndex + 30), 2, direction, true);
+    wipeStep(pixels, ColorFromPalette(gCurrentPalette, gIndex + 60), 0, phase, false);
+    wipeStep(pixels, ColorFromPalette(gCurrentPalette, gIndex), 1, phase, false);
+    wipeStep(pixels, ColorFromPalette(gCurrentPalette, gIndex + 65), 2, phase, false);
+    pixels[0] = ColorFromPalette(gCurrentPalette, gIndex) + CRGB(phase * 4, phase * 4, phase * 4);
 }
 
 void wipeStep(CRGB* pixels, CRGB color, uint8_t step, uint8_t direction, boolean includeCenter)
