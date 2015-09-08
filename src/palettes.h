@@ -55,4 +55,77 @@ DEFINE_GRADIENT_PALETTE(kelvino_p) {
     255,   8,  64, 129
 };
 
+// Gradient palette "spring_gp", originally from
+// http://soliton.vm.bytemark.co.uk/pub/cpt-city/h5/tn/spring.png.index.html
+// converted for FastLED with gammas (2.6, 2.2, 2.5)
+// Size: 20 bytes of program space.
+
+DEFINE_GRADIENT_PALETTE(spring_gp) {
+    0, 255,  0,255,
+   68, 255, 13,115,
+  135, 255, 62, 37,
+  204, 255,156,  4,
+  255, 255,255,  0
+};
+
+// Gradient palette "summer_gp", originally from
+// http://soliton.vm.bytemark.co.uk/pub/cpt-city/h5/tn/summer.png.index.html
+// converted for FastLED with gammas (2.6, 2.2, 2.5)
+// Size: 20 bytes of program space.
+
+DEFINE_GRADIENT_PALETTE(summer_gp) {
+    0,   0, 55, 25,
+   68,   8, 92, 25,
+  135,  48,141, 25,
+  204, 142,201, 25,
+  255, 255,255, 25
+};
+
+// Gradient palette "autumn_gp", originally from
+// http://soliton.vm.bytemark.co.uk/pub/cpt-city/h5/tn/autumn.png.index.html
+// converted for FastLED with gammas (2.6, 2.2, 2.5)
+// Size: 8 bytes of program space.
+
+DEFINE_GRADIENT_PALETTE(autumn_gp) {
+    0, 255,  0,  0,
+  255, 255,255,  0
+};
+
+// Gradient palette "winter_gp", originally from
+// http://soliton.vm.bytemark.co.uk/pub/cpt-city/h5/tn/winter.png.index.html
+// converted for FastLED with gammas (2.6, 2.2, 2.5)
+// Size: 8 bytes of program space.
+
+DEFINE_GRADIENT_PALETTE(winter_gp) {
+    0,   0,  0,255,
+  255,   0,255, 44
+};
+
+// Gradient palette "hot_gp", originally from
+// http://soliton.vm.bytemark.co.uk/pub/cpt-city/h5/tn/hot.png.index.html
+// converted for FastLED with gammas (2.6, 2.2, 2.5)
+// Size: 36 bytes of program space.
+
+DEFINE_GRADIENT_PALETTE(hot_gp) {
+    0,   1,  0,  0,
+   32,  19,  0,  0,
+   64, 103,  0,  0,
+   97, 255,  1,  0,
+  129, 255, 29,  0,
+  161, 255,118,  0,
+  194, 255,255,  1,
+  226, 255,255, 60,
+  255, 255,255,255
+};
+
+// Gradient palette "cool_gp", originally from
+// http://soliton.vm.bytemark.co.uk/pub/cpt-city/h5/tn/cool.png.index.html
+// converted for FastLED with gammas (2.6, 2.2, 2.5)
+// Size: 8 bytes of program space.
+
+DEFINE_GRADIENT_PALETTE(cool_gp) {
+    0,   0,255,255,
+  255, 255,  0,255
+};
+
 #endif

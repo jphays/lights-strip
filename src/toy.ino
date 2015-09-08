@@ -3,10 +3,12 @@
 
 FASTLED_USING_NAMESPACE
 
+// ================================
 // Toy cube light for Selina
 // Using Adafruit Neopixel Jewel
 // Based on FastLED 3.1 demo reel.
 // Josh Hays, 8/2015
+// ================================
 
 #if FASTLED_VERSION < 3001000
 #error "Requires FastLED 3.1 or later."
@@ -54,6 +56,8 @@ SimplePattern gPatterns[] = {
     wipe,
     sinelon,
     candle,
+    pulseTracer,
+    beatPhaser,
 };
 
 // List of palettes to use
@@ -69,6 +73,12 @@ CRGBPalette16 gPalettes[] = {
     coldFire_p,
     royal_p,
     bp_p,
+    spring_gp,
+    summer_gp,
+    autumn_gp,
+    winter_gp,
+    hot_gp,
+    cool_gp,
     //kelvino_p,
     //achilles_p
 };
@@ -120,7 +130,7 @@ void loop()
     EVERY_N_MILLISECONDS(20) { gIndex++; } // slowly cycle the "base color" through the palette
     EVERY_N_MILLISECONDS(20) { nblendPaletteTowardPalette(gCurrentPalette, gTargetPalette, 16); }
     EVERY_N_SECONDS(10) { nextPattern(); } // change patterns periodically
-    EVERY_N_SECONDS(30) { nextPalette(); } // change palettes periodically
+    EVERY_N_SECONDS(23) { nextPalette(); } // change palettes periodically
 
 }
 
@@ -377,6 +387,28 @@ void candle(CRGB* pixels)
     {
         pixels[i] = ColorFromPalette(palette, gIndex + (i * 3), beat - random8(10)); // , beat-gIndex+(i*3));
     }
+}
+
+void pulseTracer(CRGB* pixels)
+{
+    uint8_t bpm = 10;
+    int offset = beatsin8(bpm, 0, 32) - 16;
+    int pos = beatsin16(bpm * 5 / 2, 0, NUM_LEDS - 1);
+
+    for (int i = 1; i < NUM_LEDS; i++)
+    {
+        pixels[(i + pos) % (NUM_LEDS - 1) + 1] =
+            ColorFromPalette(gCurrentPalette, gIndex + (i * offset), 255 - beatsin8(bpm, 100, 255));
+    }
+
+    pixels[0] = ColorFromPalette(gCurrentPalette, gIndex, beatsin8(bpm, 60, 255));
+}
+
+void beatPhaser(CRGB* pixels)
+{
+    fadeToBlackBy(pixels, NUM_LEDS, beatsin8(8, 2, 8));
+    int pos = scale8(beat8(beatsin8(10, 0, 60)), NUM_LEDS - 1) + 1;
+    pixels[pos] = ColorFromPalette(gCurrentPalette, gIndex, beatsin8(10, 100, 255));
 }
 
 // Utilities
