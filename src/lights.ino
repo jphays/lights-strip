@@ -3,12 +3,11 @@
 
 FASTLED_USING_NAMESPACE
 
-// ================================
-// Toy cube light for Selina
-// Using Adafruit Neopixel Jewel
+// ===========================================
+// Light patterns for Adafruit Neopixel Jewel
 // Based on FastLED 3.1 demo reel.
 // Josh Hays, 8/2015
-// ================================
+// ===========================================
 
 #if FASTLED_VERSION < 3001000
 #error "Requires FastLED 3.1 or later."
@@ -65,7 +64,7 @@ CRGBPalette16 gPalettes[] = {
     CRGBPalette16(RainbowColors_p),
     CRGBPalette16(RainbowStripeColors_p),
     CRGBPalette16(PartyColors_p),
-    CRGBPalette16(CloudColors_p),
+    //CRGBPalette16(CloudColors_p),
     CRGBPalette16(ForestColors_p),
     CRGBPalette16(LavaColors_p),
     CRGBPalette16(OceanColors_p),
