@@ -235,8 +235,8 @@ void nextPalette()
     gTargetPalette = gPalettes[gCurrentPaletteNumber];
 
     // flash occasionally
-    const uint8_t flashPercent = 20;
-    if (gRandomize && random8(100) < flashPercent) gCurrentPalette = CRGBPalette16(CRGB::White);
+    //const uint8_t flashPercent = 20;
+    //if (gRandomize && random8(100) < flashPercent) gCurrentPalette = CRGBPalette16(CRGB::White);
 }
 
 
@@ -323,10 +323,10 @@ void confetti(CRGB* pixels)
 {
     // random colored speckles that blink in and fade smoothly.
     fadeToBlackBy(pixels, NUM_LEDS, 10);
-    if (random8(100) < beatsin8(10, 90, 100))
+    for (uint8_t i = 0; i < beatsin8(10, 1, 3); i++)
     {
         int pos = random16(NUM_LEDS);
-        pixels[pos] += ColorFromPalette(gCurrentPalette, gIndex + random8(64));
+        pixels[pos] += ColorFromPalette(gCurrentPalette, gIndex + i * 16);
     }
 }
 
@@ -334,9 +334,9 @@ void juggle(CRGB* pixels)
 {
     // colored dots, weaving in and out of sync with each other.
     fadeToBlackBy(pixels, NUM_LEDS, 20);
-    for (int i = 0; i < 7; i++)
+    for (int i = 1; i <= 7; i++)
     {
-        pixels[beatsin16(i+7,0,NUM_LEDS)] |= ColorFromPalette(gCurrentPalette, gIndex);
+        pixels[beatsin16(i, 0, NUM_LEDS)] |= ColorFromPalette(gCurrentPalette, gIndex + i * 3);
     }
 }
 
