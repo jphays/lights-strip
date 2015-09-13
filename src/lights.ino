@@ -1,10 +1,11 @@
-#include "FastLED.h"
+#include <FastLED.h>
+#include <Button.h>
 #include "palettes.h"
 
 FASTLED_USING_NAMESPACE
 
 // ===========================================
-// Light patterns for Adafruit Neopixel Jewel
+// Light patterns for DotStar APA102 strip.
 // Based on FastLED 3.1 demo reel.
 // Josh Hays, 8/2015
 // ===========================================
@@ -13,16 +14,23 @@ FASTLED_USING_NAMESPACE
 #error "Requires FastLED 3.1 or later."
 #endif
 
-#define DATA_PIN    9
-#define LED_TYPE    WS2812B
-#define COLOR_ORDER GRB
-#define NUM_LEDS    7
+#define DATA_PIN    3
+#define CLOCK_PIN   4
+#define LED_TYPE    APA102
+#define COLOR_ORDER GBR
+#define NUM_LEDS    61
 
 CRGB leds[NUM_LEDS]; // actual output array
 CRGB buffer[2][NUM_LEDS]; // intermediate buffers
 
 #define CUR 0 // index to current buffer
 #define PREV 1 // index to previous buffer
+
+#define BUTTON1_PIN 5
+#define BUTTON2_PIN 6
+
+Button gPatternButton(BUTTON1_PIN, true, true, 20);
+Button gPaletteButton(BUTTON2_PIN, true, true, 20);
 
 #define BRIGHTNESS          96
 #define FRAMES_PER_SECOND  120
@@ -36,9 +44,12 @@ CRGB buffer[2][NUM_LEDS]; // intermediate buffers
 void setup()
 {
     // tell FastLED about the LED strip configuration
-    FastLED.addLeds<LED_TYPE, DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS);
+    FastLED.addLeds<LED_TYPE, DATA_PIN, CLOCK_PIN, COLOR_ORDER>(leds, NUM_LEDS);
     // FastLED.setCorrection(TypicalLEDStrip);
     FastLED.setBrightness(BRIGHTNESS);
+
+    // set up serial
+    Serial.begin(57600);
 }
 
 // List of patterns to cycle through.  Each is defined as a separate function below.
@@ -50,13 +61,13 @@ SimplePattern gPatterns[] = {
     leaderSpread,
     confetti,
     juggle,
-    complement,
-    whirl,
-    wipe,
+    //complement,
+    //whirl,
+    //wipe,
     sinelon,
     candle,
-    pulseTracer,
-    beatPhaser,
+    //pulseTracer,
+    //beatPhaser,
 };
 
 // List of palettes to use
@@ -64,7 +75,7 @@ CRGBPalette16 gPalettes[] = {
     CRGBPalette16(RainbowColors_p),
     CRGBPalette16(RainbowStripeColors_p),
     CRGBPalette16(PartyColors_p),
-    //CRGBPalette16(CloudColors_p),
+    CRGBPalette16(CloudColors_p),
     CRGBPalette16(ForestColors_p),
     CRGBPalette16(LavaColors_p),
     CRGBPalette16(OceanColors_p),
@@ -92,6 +103,7 @@ uint8_t gPreviousPatternNumber = 0; // Index of previous pattern
 uint8_t gCurrentPaletteNumber = 0; // Index of current palette
 uint8_t gIndex = 0; // rotating index of "current" color
 
+bool gCycle = true; // whether to automatically cycle patterns
 bool gRandomize = true; // whether to add some randomness
 
 bool gTransitioning = false; // currently in a transition?
@@ -117,6 +129,9 @@ void loop()
     gPreviousTime = gCurrentTime;
     gCurrentTime = millis();
 
+    // read buttons
+    handleInput();
+
     // render the current frame to the led buffer, transitioning scenes if necessary
     renderFrame();
 
@@ -127,9 +142,9 @@ void loop()
 
     // do some periodic updates
     EVERY_N_MILLISECONDS(20) { gIndex++; } // slowly cycle the "base color" through the palette
-    EVERY_N_MILLISECONDS(20) { nblendPaletteTowardPalette(gCurrentPalette, gTargetPalette, 16); }
-    EVERY_N_SECONDS(10) { nextPattern(); } // change patterns periodically
-    EVERY_N_SECONDS(23) { nextPalette(); } // change palettes periodically
+    EVERY_N_MILLISECONDS(20) { nblendPaletteTowardPalette(gCurrentPalette, gTargetPalette); }
+    EVERY_N_SECONDS(15) { if (gCycle) nextPattern(); } // change patterns periodically
+    EVERY_N_SECONDS(30) { if (gCycle) nextPalette(); } // change palettes periodically
 
 }
 
@@ -163,6 +178,34 @@ void renderFrame()
 
 }
 
+void handleInput()
+{
+    gPatternButton.read();
+    gPaletteButton.read();
+
+    if (gPatternButton.wasPressed())
+    {
+        gCycle = false;
+        gRandomize = false;
+        gTransitionMillis = 500;
+        nextPattern();
+    }
+
+    if (gPaletteButton.wasPressed())
+    {
+        gCycle = false;
+        gRandomize = false;
+        nextPalette();
+    }
+
+    if (gPatternButton.pressedFor(1000) || gPaletteButton.pressedFor(1000))
+    {
+        gCycle = true;
+        gRandomize = true;
+        gTransitionMillis = 3000;
+    }
+}
+
 
 // Transitions
 // -----------
@@ -192,8 +235,8 @@ void nextPalette()
     gTargetPalette = gPalettes[gCurrentPaletteNumber];
 
     // flash occasionally
-    //const uint8_t flashPercent = 20;
-    //if (gRandomize && random8(100) < flashPercent) gCurrentPalette = CRGBPalette16(CRGB::LightGrey);
+    const uint8_t flashPercent = 20;
+    if (gRandomize && random8(100) < flashPercent) gCurrentPalette = CRGBPalette16(CRGB::White);
 }
 
 
@@ -214,7 +257,7 @@ void paletteSweepWithGlitter(CRGB* pixels)
 {
     // basic pattern with added glitter fading in.
     paletteSweep(pixels);
-    addGlitter(pixels, min(gSceneFrame / 30, 30));
+    addGlitter(pixels, min(gSceneFrame / 20, 100));
 }
 
 void addGlitter(CRGB* pixels, fract8 chanceOfGlitter)
@@ -280,7 +323,7 @@ void confetti(CRGB* pixels)
 {
     // random colored speckles that blink in and fade smoothly.
     fadeToBlackBy(pixels, NUM_LEDS, 10);
-    if (random8(100) < beatsin8(10, 20, 50))
+    if (random8(100) < beatsin8(10, 90, 100))
     {
         int pos = random16(NUM_LEDS);
         pixels[pos] += ColorFromPalette(gCurrentPalette, gIndex + random8(64));
@@ -365,7 +408,7 @@ void sinelon(CRGB* pixels)
 {
     // a colored dot sweeping back and forth, with fading trails
     fadeToBlackBy(pixels, NUM_LEDS, 20);
-    int beat = beatsin16(12, 0, (NUM_LEDS - 1) * 3) + beatsin16(8, 0, 12);
+    int beat = beatsin16(12, 0, (NUM_LEDS - 1) * 2) + beatsin16(8, 0, 12);
     int pos = beat % (NUM_LEDS - 1) + 1;
     pixels[pos] += ColorFromPalette(gCurrentPalette, gIndex + pos * 2);
 
