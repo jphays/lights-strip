@@ -32,7 +32,7 @@ CRGB buffer[2][NUM_LEDS]; // intermediate buffers
 Button gPatternButton(BUTTON1_PIN, true, true, 20);
 Button gPaletteButton(BUTTON2_PIN, true, true, 20);
 
-#define BRIGHTNESS          96
+#define BRIGHTNESS         128
 #define FRAMES_PER_SECOND  120
 
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
@@ -61,9 +61,6 @@ SimplePattern gPatterns[] = {
     leaderSpread,
     confetti,
     juggle,
-    //complement,
-    //whirl,
-    //wipe,
     sinelon,
     candle,
     //pulseTracer,
@@ -286,17 +283,6 @@ void addGlitter(CRGB* pixels, fract8 chanceOfGlitter)
     }
 }
 
-void complement(CRGB* pixels)
-{
-    // basic pattern with a complementary hue in the center.
-    CRGBPalette16 palette = gCurrentPalette;
-    pixels[0] = ColorFromPalette(palette, gIndex + 128);
-    for (int i = 1; i < NUM_LEDS; i++)
-    {
-        pixels[i] = ColorFromPalette(palette, gIndex + (i * 7));
-    }
-}
-
 void leaderSpread(CRGB* pixels)
 {
     // basic pattern with the center hue a few frames ahead of the rest.
@@ -337,70 +323,6 @@ void juggle(CRGB* pixels)
     for (int i = 1; i <= 7; i++)
     {
         pixels[beatsin16(i, 0, NUM_LEDS)] |= ColorFromPalette(gCurrentPalette, gIndex + i * 3);
-    }
-}
-
-void wipe(CRGB* pixels)
-{
-    // a sweep across the jewel hexagon.
-    static long lastStepTime = 0;
-    static uint8_t step = 0;
-    static uint8_t direction = 0;
-    int intensity = beatsin8(9, 0, 160);
-    fadeToBlackBy(pixels, NUM_LEDS, beatsin8(6, 2, 20));
-    CRGB currentColor = ColorFromPalette(gCurrentPalette, gIndex);
-
-    if (gCurrentTime - lastStepTime >= 100)
-    {
-        if (step == 0)
-        {
-            pixels[0] = currentColor + CRGB(intensity, intensity, intensity);
-        }
-
-        if (step < 3)
-        {
-            wipeStep(pixels, currentColor, step, direction, false);
-            step++;
-        }
-        else if (step == 3)
-        {
-            step = 0;
-            direction = random8Except(6, direction);
-        }
-
-        lastStepTime = gCurrentTime;
-    }
-}
-
-void whirl(CRGB* pixels)
-{
-    const uint8_t bpm = 6;
-    const uint8_t cycles = 8;
-    uint8_t phase = beatsin8(bpm, 0, 6 * cycles);
-
-    wipeStep(pixels, ColorFromPalette(gCurrentPalette, gIndex + 60), 0, phase, false);
-    wipeStep(pixels, ColorFromPalette(gCurrentPalette, gIndex), 1, phase, false);
-    wipeStep(pixels, ColorFromPalette(gCurrentPalette, gIndex + 65), 2, phase, false);
-    pixels[0] = ColorFromPalette(gCurrentPalette, gIndex) + CRGB(phase * 4, phase * 4, phase * 4);
-}
-
-void wipeStep(CRGB* pixels, CRGB color, uint8_t step, uint8_t direction, boolean includeCenter)
-{
-    switch (step % 3)
-    {
-        case 0:
-            pixels[addmod8(0, direction, 6) + 1] = color;
-            pixels[addmod8(1, direction, 6) + 1] = color;
-            break;
-        case 1:
-            if (includeCenter) pixels[0] = color;
-            pixels[addmod8(2, direction, 6) + 1] = color;
-            pixels[addmod8(5, direction, 6) + 1] = color;
-            break;
-        case 2:
-            pixels[addmod8(3, direction, 6) + 1] = color;
-            pixels[addmod8(4, direction, 6) + 1] = color;
-            break;
     }
 }
 
