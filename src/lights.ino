@@ -72,8 +72,8 @@ CRGBPalette16 gPalettes[] = {
     CRGBPalette16(RainbowColors_p),
     CRGBPalette16(RainbowStripeColors_p),
     CRGBPalette16(PartyColors_p),
-    CRGBPalette16(CloudColors_p),
-    CRGBPalette16(ForestColors_p),
+    //CRGBPalette16(CloudColors_p),
+    //CRGBPalette16(ForestColors_p),
     CRGBPalette16(LavaColors_p),
     CRGBPalette16(OceanColors_p),
     modifiedRainbow_p,
@@ -231,7 +231,11 @@ void nextPalette()
         random8Except(ARRAY_SIZE(gPalettes), gCurrentPaletteNumber) :
         (gCurrentPaletteNumber + 1) % ARRAY_SIZE(gPalettes);
 
-    gTargetPalette = gPalettes[gCurrentPaletteNumber];
+    uint8_t paletteType = random8(100);
+    if (!gRandomize || paletteType <= 70) gTargetPalette = gPalettes[gCurrentPaletteNumber];
+    else if (paletteType <= 80) gTargetPalette = getPulsePalette();
+    else if (paletteType <= 90) gTargetPalette = getStrobePalette();
+    else gTargetPalette = getRampPalette();
 
     // flash occasionally
     //const uint8_t flashPercent = 20;
