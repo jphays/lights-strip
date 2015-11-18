@@ -28,6 +28,14 @@ CRGBPalette16 getRampPalette()
     return CRGBPalette16(CHSV(hue1, 255, 255), CHSV(hue2, 255, 255));
 }
 
+CRGBPalette16 getCWCBPalette()
+{
+    uint8_t hue1 = random8();
+    uint8_t hue2 = random8();
+    return CRGBPalette16(CHSV(hue1, 255, 255), CRGB::White,
+                         CHSV(hue2, 255, 255), CRGB::Black);
+}
+
 CRGBPalette16 modifiedRainbow_p = CRGBPalette16(
     CRGB::Red, CRGB::OrangeRed, CRGB::Orange, CRGB::Gold,
     CRGB::Yellow, CRGB::GreenYellow, CRGB::Lime, CRGB::Cyan,

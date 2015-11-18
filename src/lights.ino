@@ -1,17 +1,17 @@
-#include <FastLED.h>
-#include <Button.h>
-FASTLED_USING_NAMESPACE
-#include "settings.h"
-#include "utils.h"
-#include "palettes.h"
-#include "patterns.h"
-
-
 // ===========================================
 // Light patterns for DotStar APA102 strip.
 // Based on FastLED 3.1 demo reel.
 // Josh Hays, 8/2015
 // ===========================================
+
+#include <Button.h>
+#include <FastLED.h>
+FASTLED_USING_NAMESPACE
+
+#include "settings.h"
+#include "utils.h"
+#include "palettes.h"
+#include "patterns.h"
 
 #if FASTLED_VERSION < 3001000
 #error "Requires FastLED 3.1 or later."
@@ -49,8 +49,6 @@ SimplePattern gPatterns[] = {
     juggle,
     sinelon,
     candle,
-    //pulseTracer,
-    //beatPhaser,
 };
 
 // List of palettes to use
@@ -58,8 +56,6 @@ CRGBPalette16 gPalettes[] = {
     CRGBPalette16(RainbowColors_p),
     CRGBPalette16(RainbowStripeColors_p),
     CRGBPalette16(PartyColors_p),
-    //CRGBPalette16(CloudColors_p),
-    //CRGBPalette16(ForestColors_p),
     CRGBPalette16(LavaColors_p),
     CRGBPalette16(OceanColors_p),
     modifiedRainbow_p,
@@ -72,18 +68,23 @@ CRGBPalette16 gPalettes[] = {
     winter_gp,
     hot_gp,
     cool_gp,
-    //kelvino_p,
-    //achilles_p
+};
+
+// Palette generation functions
+typedef CRGBPalette16 (*PaletteFunction)();
+PaletteFunction gPaletteFuncs[] = {
+    getPulsePalette,
+    getStrobePalette,
+    getRampPalette,
+    getCWCBPalette,
 };
 
 // current and next palette, for smooth transitions
-CRGBPalette16 gCurrentPalette(gPalettes[0]); // intro palette, e.g. CRGB::LightGrey
+CRGBPalette16 gCurrentPalette(gPalettes[0]); // could init with intro palette, e.g. CRGB::LightGrey
 CRGBPalette16 gTargetPalette(gPalettes[0]);
 
 uint8_t gCurrentPatternNumber = 0; // Index of current pattern
 uint8_t gPreviousPatternNumber = 0; // Index of previous pattern
-
-uint8_t gCurrentPaletteNumber = 0; // Index of current palette
 uint8_t gIndex = 0; // rotating index of "current" color
 
 bool gCycle = true; // whether to automatically cycle patterns
@@ -213,18 +214,20 @@ void nextPattern()
 
 void nextPalette()
 {
-    gCurrentPaletteNumber = gRandomize ?
-        random8Except(ARRAY_SIZE(gPalettes), gCurrentPaletteNumber) :
-        (gCurrentPaletteNumber + 1) % ARRAY_SIZE(gPalettes);
+    if (gRandomize)
+    {
+        uint8_t paletteType = random8(100);
+        if (paletteType < 70)
+            gTargetPalette = gPalettes[random8(ARRAY_SIZE(gPalettes))];
+        else
+            gTargetPalette = gPaletteFuncs[random8(ARRAY_SIZE(gPaletteFuncs))]();
+    }
+    else
+    {
+        static uint8_t paletteIndex = 0;
 
-    uint8_t paletteType = random8(100);
-    if (!gRandomize || paletteType <= 70) gTargetPalette = gPalettes[gCurrentPaletteNumber];
-    else if (paletteType <= 80) gTargetPalette = getPulsePalette();
-    else if (paletteType <= 90) gTargetPalette = getStrobePalette();
-    else gTargetPalette = getRampPalette();
-
-    // flash occasionally
-    //const uint8_t flashPercent = 20;
-    //if (gRandomize && random8(100) < flashPercent) gCurrentPalette = CRGBPalette16(CRGB::White);
+        // pick one:
+        //gTargetPalette = gPalettes[paletteIndex++ % ARRAY_SIZE(gPalettes)];
+        gTargetPalette = gPaletteFuncs[paletteIndex++ % ARRAY_SIZE(gPaletteFuncs)]();
+    }
 }
-
