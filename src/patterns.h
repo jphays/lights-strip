@@ -1,5 +1,5 @@
-// Scenes
-// ------
+// Patterns
+// --------
 
 extern CRGBPalette16 gCurrentPalette;
 extern uint8_t gIndex;
@@ -138,27 +138,4 @@ void candle(CRGB* pixels, unsigned long frame)
         pixels[i] = ColorFromPalette(palette, gIndex + (i * 3), beat - random8(10)); // , beat-gIndex+(i*3));
     }
 }
-
-void pulseTracer(CRGB* pixels, unsigned long frame)
-{
-    uint8_t bpm = 10;
-    int offset = beatsin8(bpm, 0, 32) - 16;
-    int pos = beatsin16(bpm * 5 / 2, 0, NUM_LEDS - 1);
-
-    for (int i = 1; i < NUM_LEDS; i++)
-    {
-        pixels[(i + pos) % (NUM_LEDS - 1) + 1] =
-            ColorFromPalette(gCurrentPalette, gIndex + (i * offset), 255 - beatsin8(bpm, 100, 255));
-    }
-
-    pixels[0] = ColorFromPalette(gCurrentPalette, gIndex, beatsin8(bpm, 60, 255));
-}
-
-void beatPhaser(CRGB* pixels, unsigned long frame)
-{
-    fadeToBlackBy(pixels, NUM_LEDS, beatsin8(8, 2, 8));
-    int pos = scale8(beat8(beatsin8(10, 0, 60)), NUM_LEDS - 1) + 1;
-    pixels[pos] = ColorFromPalette(gCurrentPalette, gIndex, beatsin8(10, 100, 255));
-}
-
 
