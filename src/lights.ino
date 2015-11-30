@@ -74,7 +74,10 @@ CRGBPalette16 gPalettes[] = {
 typedef CRGBPalette16 (*PaletteFunction)();
 PaletteFunction gPaletteFuncs[] = {
     getPulsePalette,
+    getPulse2Palette,
+    getPulse4Palette,
     getStrobePalette,
+    getStrobe2Palette,
     getRampPalette,
     getCWCBPalette,
 };

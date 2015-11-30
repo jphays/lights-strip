@@ -11,6 +11,30 @@ CRGBPalette16 getPulsePalette()
         CHSV(hue, 255, 255), CRGB::Black, CHSV(hue, 255, 255), CRGB::Black);
 }
 
+CRGBPalette16 getPulse2Palette()
+{
+    uint8_t hue1 = random8();
+    uint8_t hue2 = random8();
+    return CRGBPalette16(
+        CHSV(hue1, 255, 255), CRGB::Black, CHSV(hue2, 255, 255), CRGB::Black,
+        CHSV(hue1, 255, 255), CRGB::Black, CHSV(hue2, 255, 255), CRGB::Black,
+        CHSV(hue1, 255, 255), CRGB::Black, CHSV(hue2, 255, 255), CRGB::Black,
+        CHSV(hue1, 255, 255), CRGB::Black, CHSV(hue2, 255, 255), CRGB::Black);
+}
+
+CRGBPalette16 getPulse4Palette()
+{
+    uint8_t hue1 = random8();
+    uint8_t hue2 = random8();
+    uint8_t hue3 = random8();
+    uint8_t hue4 = random8();
+    return CRGBPalette16(
+        CHSV(hue1, 255, 255), CRGB::Black, CHSV(hue2, 255, 255), CRGB::Black,
+        CHSV(hue3, 255, 255), CRGB::Black, CHSV(hue4, 255, 255), CRGB::Black,
+        CHSV(hue1, 255, 255), CRGB::Black, CHSV(hue2, 255, 255), CRGB::Black,
+        CHSV(hue3, 255, 255), CRGB::Black, CHSV(hue4, 255, 255), CRGB::Black);
+}
+
 CRGBPalette16 getStrobePalette()
 {
     uint8_t hue = random8();
@@ -21,6 +45,17 @@ CRGBPalette16 getStrobePalette()
         CHSV(hue, 255, 255), CHSV(hue, 255, 255), CRGB::Black, CRGB::Black);
 }
 
+CRGBPalette16 getStrobe2Palette()
+{
+    uint8_t hue1 = random8();
+    uint8_t hue2 = random8();
+    return CRGBPalette16(
+        CHSV(hue1, 255, 255), CHSV(hue1, 255, 255), CRGB::Black, CRGB::Black,
+        CHSV(hue2, 255, 255), CHSV(hue2, 255, 255), CRGB::Black, CRGB::Black,
+        CHSV(hue1, 255, 255), CHSV(hue1, 255, 255), CRGB::Black, CRGB::Black,
+        CHSV(hue2, 255, 255), CHSV(hue2, 255, 255), CRGB::Black, CRGB::Black);
+}
+
 CRGBPalette16 getRampPalette()
 {
     uint8_t hue1 = random8();
@@ -28,12 +63,25 @@ CRGBPalette16 getRampPalette()
     return CRGBPalette16(CHSV(hue1, 255, 255), CHSV(hue2, 255, 255));
 }
 
+CRGBPalette16 getEvenPalette(CRGB c0, CRGB c1, CRGB c2, CRGB c3)
+{
+    int p1 = 128;
+    int p2 = 224;
+    int p3 = 255;
+    return CRGBPalette16(
+        c0, blend(c0, c1, p1), blend(c0, c1, p2), blend(c0, c1, p3),
+        c1, blend(c1, c2, p1), blend(c1, c2, p2), blend(c1, c2, p3),
+        c2, blend(c2, c3, p1), blend(c2, c3, p2), blend(c2, c3, p3),
+        c3, blend(c3, c0, p1), blend(c3, c0, p2), blend(c3, c0, p3));
+}
+
 CRGBPalette16 getCWCBPalette()
 {
-    uint8_t hue1 = random8();
-    uint8_t hue2 = random8();
-    return CRGBPalette16(CHSV(hue1, 255, 255), CRGB::White,
-                         CHSV(hue2, 255, 255), CRGB::Black);
+    return getEvenPalette(
+            CHSV(random8(), 255, 255),
+            CRGB::White,
+            CHSV(random8(), 255, 255),
+            CRGB::Black);
 }
 
 CRGBPalette16 modifiedRainbow_p = CRGBPalette16(
